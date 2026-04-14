@@ -674,23 +674,29 @@ export default function Scorecard({ restaurant }) {
                 const guestMap = {};
                 (data.fbLeads?.daily || []).filter(d => d.date >= c.cs && d.date <= c.end).forEach(d => {
                   (d.matchedGuests || []).forEach(g => {
-                    if (!guestMap[g.key]) guestMap[g.key] = { email: g.email, phone: g.phone, amount: 0, count: 0 };
+                    if (!guestMap[g.key]) guestMap[g.key] = { email: g.email, phone: g.phone, amount: 0, resCount: 0, hasPos: false };
                     guestMap[g.key].amount += g.amount;
-                    guestMap[g.key].count++;
+                    guestMap[g.key].resCount += g.resCount || 1;
+                    if (g.amount > 0) guestMap[g.key].hasPos = true;
                   });
                 });
                 const rows = Object.values(guestMap).sort((a, b) => b.amount - a.amount);
                 if (!rows.length) return null;
+                const totalRevenue = rows.reduce((s, g) => s + (g.hasPos ? g.amount : g.resCount * c.spendPerRes), 0);
                 return (
                   <ChExpand label="Matched guests breakdown">
                     <MiniTable
                       headers={['Guest', 'Res.', 'Revenue']}
-                      rows={rows.map(g => [
-                        g.email ? g.email.replace(/(.{2}).*(@.*)/, '$1***$2') : `***${g.phone.slice(-4)}`,
-                        fmtN(g.count),
-                        g.amount > 0 ? fmtD(g.amount) : '—',
-                      ])}
-                      footerRow={['Total', fmtN(rows.length), fmtD(rows.reduce((s, g) => s + g.amount, 0))]}
+                      rows={rows.map(g => {
+                        const rev = g.hasPos ? g.amount : (c.spendPerRes > 0 ? g.resCount * c.spendPerRes : 0);
+                        const label = g.hasPos ? fmtD(rev) : (rev > 0 ? `~${fmtD(rev)}` : '—');
+                        return [
+                          g.email ? g.email.replace(/(.{2}).*(@.*)/, '$1***$2') : `***${g.phone.slice(-4)}`,
+                          fmtN(g.resCount),
+                          label,
+                        ];
+                      })}
+                      footerRow={['Total', fmtN(rows.length), fmtD(totalRevenue)]}
                     />
                   </ChExpand>
                 );

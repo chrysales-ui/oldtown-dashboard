@@ -478,12 +478,12 @@ async function processFacebookLeads(reservationGuestIndex, pvGuestIndex = {}, pv
               if (!daily[resDate]) daily[resDate] = { date: resDate, leads: 0, matched: 0, newGuests: 0, returning: 0, pePvMatched: 0 };
               daily[resDate].metaLeadRevenue = (daily[resDate].metaLeadRevenue || 0) + amt;
               if (!daily[resDate].matchedGuests) daily[resDate].matchedGuests = [];
-              daily[resDate].matchedGuests.push({ key: guestKey, email: email || '', phone: phone || '', amount: amt });
+              daily[resDate].matchedGuests.push({ key: guestKey, email: email || '', phone: phone || '', amount: amt, resCount: 1 });
             }
           } else {
-            // matched guest but no POS data — record on lead date with $0
+            // matched guest but no POS data — record on lead date with $0 and res count for avg estimate
             if (!daily[dateKey].matchedGuests) daily[dateKey].matchedGuests = [];
-            daily[dateKey].matchedGuests.push({ key: guestKey, email: email || '', phone: phone || '', amount: 0 });
+            daily[dateKey].matchedGuests.push({ key: guestKey, email: email || '', phone: phone || '', amount: 0, resCount: createdDates.length });
           }
           seenMatchedGuests.add(guestKey);
         }
