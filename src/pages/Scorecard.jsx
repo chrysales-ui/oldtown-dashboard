@@ -565,7 +565,7 @@ export default function Scorecard({ restaurant }) {
               )}
               {c.blendedCPR > 0 && c.spendPerRes > 0 && (
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 600, marginTop: 6, padding: '3px 8px', borderRadius: 5, color: greenMid, background: 'rgba(45,122,79,0.08)' }}>
-                  ↑ {(c.spendPerRes / c.blendedCPR).toFixed(0)}× ROI — {fmtD(c.blendedCPR)} to acquire, {fmtD(c.spendPerRes)} revenue per reservation{(c.metaLeadRevenueWithEst > 0 || (c.ga.reservations > 0 && c.spendPerRes > 0)) ? ` · ${fmtD((c.metaLeadRevenueWithEst || 0) + (c.ga.reservations * c.spendPerRes || 0))} est. total revenue` : ''}
+                  ↑ {(c.spendPerRes / c.blendedCPR).toFixed(0)}× ROI — {fmtD(c.blendedCPR)} to acquire, {fmtD(c.spendPerRes)} revenue per reservation{(c.metaLeadRevenueWithEst > 0 || (c.ga.reservations > 0 && c.spendPerRes > 0)) ? ` · ${fmtD((c.metaLeadRevenueWithEst || 0) + ((c.ga.reservations + (c.fb.otReservations || 0)) * c.spendPerRes || 0))} est. total revenue` : ''}
                 </div>
               )}
             </div>
@@ -682,11 +682,15 @@ export default function Scorecard({ restaurant }) {
                   const guests = Object.values(gm);
                   const totalWithEst = guests.reduce((s, g) => s + (g.hasPos ? g.amount : g.resCount * c.spendPerRes), 0);
                   if (!guests.length && c.metaLeadRevenue === 0) return null;
-                  const display = c.metaLeadRevenueWithEst > 0 ? c.metaLeadRevenueWithEst : c.metaLeadRevenue;
+                  const otRev = (c.fb.otReservations || 0) * c.spendPerRes;
+                  const display = (c.metaLeadRevenueWithEst > 0 ? c.metaLeadRevenueWithEst : c.metaLeadRevenue) + otRev;
+                  const guestCount = guests.length || c.fbl.matched;
                   return (<>
                     <div style={{ fontSize: 11, color: dim, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600, marginBottom: 8 }}>Revenue from matched leads</div>
                     <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 34, color: green, lineHeight: 1 }}>{fmtD(display)}</div>
-                    <div style={{ fontSize: 14, color: muted, marginTop: 6, marginBottom: 18, lineHeight: 1.5 }}>Total revenue from {fmtN(guests.length || c.fbl.matched)} matched guests</div>
+                    <div style={{ fontSize: 14, color: muted, marginTop: 6, marginBottom: 18, lineHeight: 1.5 }}>
+                      {fmtN(guestCount)} matched guests{c.fb.otReservations > 0 ? ` · ${fmtN(c.fb.otReservations)} OT pixel res.` : ''}
+                    </div>
                   </>);
                 })()}
                 <hr style={{ border: 'none', borderTop: `1px solid ${border}`, margin: '14px 0' }} />
