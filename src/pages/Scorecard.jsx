@@ -672,7 +672,7 @@ export default function Scorecard({ restaurant }) {
               </div>
               {(() => {
                 const guestMap = {};
-                (data.fbLeads?.daily || []).filter(d => d.date >= cs && d.date <= end).forEach(d => {
+                (data.fbLeads?.daily || []).filter(d => d.date >= c.cs && d.date <= c.end).forEach(d => {
                   (d.matchedGuests || []).forEach(g => {
                     if (!guestMap[g.key]) guestMap[g.key] = { email: g.email, phone: g.phone, amount: 0, count: 0 };
                     guestMap[g.key].amount += g.amount;
