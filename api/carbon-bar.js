@@ -119,8 +119,9 @@ async function processFacebook() {
     const resultsCount = isLeadCampaign ? cleanNum(col[5]) : 0;
     const otReservations = isOTConversion ? cleanNum(col[5]) : 0;
     const leadSpend = isLeadCampaign ? spend : 0;
-    const empty = () => ({ spend:0, leadSpend:0, reach:0, impressions:0, clicks:0, resEvent:0, profileVisits:0, thruPlays:0, resultsCount:0, otReservations:0 });
-    const add = (obj) => { obj.spend+=spend; obj.leadSpend+=leadSpend; obj.reach+=reach; obj.impressions+=impr; obj.clicks+=clicks; obj.resultsCount+=resultsCount; obj.otReservations+=otReservations; };
+    const otSpend = isOTConversion ? spend : 0;
+    const empty = () => ({ spend:0, leadSpend:0, otSpend:0, reach:0, impressions:0, clicks:0, resEvent:0, profileVisits:0, thruPlays:0, resultsCount:0, otReservations:0 });
+    const add = (obj) => { obj.spend+=spend; obj.leadSpend+=leadSpend; obj.otSpend+=otSpend; obj.reach+=reach; obj.impressions+=impr; obj.clicks+=clicks; obj.resultsCount+=resultsCount; obj.otReservations+=otReservations; };
     if (!monthly[key]) monthly[key] = { month: key, ...empty() };
     add(monthly[key]);
     if (!daily[date]) daily[date] = { date, ...empty() };

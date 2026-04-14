@@ -47,7 +47,7 @@ function compute(data, cs, end) {
   const pe = addDays(cs, -1);
   const ps = addDays(pe, -span);
 
-  const FB_KEYS  = ['spend', 'leadSpend', 'resultsCount', 'reach', 'impressions', 'clicks', 'otReservations'];
+  const FB_KEYS  = ['spend', 'leadSpend', 'otSpend', 'resultsCount', 'reach', 'impressions', 'clicks', 'otReservations'];
   const GA_KEYS  = ['spend', 'reservations', 'storeVisits', 'calls'];
   const RES_KEYS = ['reservations', 'covers', 'seatedRes', 'ltpcSum', 'ltpcCount'];
   const PV_KEYS  = ['leads', 'completed', 'lost', 'groupSize', 'proposalTotal', 'revenueValue'];
@@ -693,7 +693,7 @@ export default function Scorecard({ restaurant }) {
                   </>);
                 })()}
                 <hr style={{ border: 'none', borderTop: `1px solid ${border}`, margin: '14px 0' }} />
-                {c.fb.otReservations > 0 && statRow('OT reservations (pixel)', `${fmtN(c.fb.otReservations)}${c.diningMetaSpend > 0 ? ` · ${fmtD2(c.diningMetaSpend / c.fb.otReservations)} / res` : ''}`, 'g')}
+                {c.fb.otReservations > 0 && statRow('OT reservations (pixel)', `${fmtN(c.fb.otReservations)}${c.fb.otSpend > 0 ? ` · ${fmtD2(c.fb.otSpend / c.fb.otReservations)} / res` : ''}`, 'g')}
                 {c.fbl.newGuests > 0 && statRow('New guests', fmtN(c.fbl.newGuests), 'g')}
                 {c.fbl.returning > 0 && statRow('Returning guests', fmtN(c.fbl.returning), 'a')}
                 {c.unbooked > 0 && statRow('Unconverted (30–90d)', fmtN(c.unbooked))}
