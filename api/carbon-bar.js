@@ -260,7 +260,10 @@ async function processReservations() {
     for (const k of [ge, gp].filter(Boolean)) {
       if (!guestIndex[k]) guestIndex[k] = [];
       guestIndex[k].push(createdKey);
-      if (ltpc > 0) resRevenueIndex[k] = (resRevenueIndex[k] || 0) + ltpc;
+      if (ltpc > 0) {
+        if (!resRevenueIndex[k]) resRevenueIndex[k] = {};
+        resRevenueIndex[k][createdKey] = (resRevenueIndex[k][createdKey] || 0) + ltpc;
+      }
     }
   }
   for (let i = 1; i < lines.length; i++) {
@@ -487,7 +490,8 @@ async function processFacebookLeads(reservationGuestIndex, pvGuestIndex = {}, pv
   const daily = {}, monthly = {};
   let totalLeads = 0, matched = 0, newGuests = 0, returning = 0, pvMatched = 0, pePvMatchedRevenue = 0, metaLeadRevenue = 0;
   const seenPeEmails = new Set();
-  const seenMatchedGuests = new Set(); // avoid double-counting revenue for guests with multiple leads
+  const seenMatchedGuests = new Set();  // prevents double-counting revenue
+  const seenDetailGuests = new Set();   // prevents duplicate detail entries
 
   for (let i = 1; i < lines.length; i++) {
     const col = parseCSVLine(lines[i]);
@@ -535,9 +539,25 @@ async function processFacebookLeads(reservationGuestIndex, pvGuestIndex = {}, pv
           daily[dateKey].returning++;
           monthly[monthKey].returning++;
         }
-        if (!seenMatchedGuests.has(guestKey) && resRevenueIndex[guestKey]) {
-          metaLeadRevenue += resRevenueIndex[guestKey];
+        // revenue: count once across all time
+        if (!seenMatchedGuests.has(guestKey)) {
+          if (resRevenueIndex[guestKey]) {
+            for (const [resDate, amt] of Object.entries(resRevenueIndex[guestKey])) {
+              metaLeadRevenue += amt;
+              if (!daily[resDate]) daily[resDate] = { date: resDate, leads: 0, matched: 0, newGuests: 0, returning: 0 };
+              daily[resDate].metaLeadRevenue = (daily[resDate].metaLeadRevenue || 0) + amt;
+            }
+          }
           seenMatchedGuests.add(guestKey);
+        }
+        // detail entry: record once per guest on lead date
+        if (!seenDetailGuests.has(guestKey)) {
+          if (!daily[dateKey].matchedGuests) daily[dateKey].matchedGuests = [];
+          const guestRevDates = resRevenueIndex[guestKey] || {};
+          const hasPos = Object.keys(guestRevDates).length > 0;
+          const posTotal = Object.values(guestRevDates).reduce((s, v) => s + v, 0);
+          daily[dateKey].matchedGuests.push({ key: guestKey, email: email || '', phone: phone || '', amount: posTotal, resCount: hasPos ? Object.keys(guestRevDates).length : createdDates.length, hasPos });
+          seenDetailGuests.add(guestKey);
         }
       }
     }
