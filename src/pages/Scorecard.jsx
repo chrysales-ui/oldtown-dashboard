@@ -288,6 +288,18 @@ function compute(data, cs, end) {
     diningMetaResults, diningMetaResultsP, diningMetaCPL, diningMetaCPLP, diningMetaCPLPct,
     gResPct, totalResPct, pvLdPct, resPct, fvPct, gCPRPct, unbooked,
     metaLeadRevenue: fbl.metaLeadRevenue || 0,
+    metaLeadRevenueWithEst: (() => {
+      const gm = {};
+      (data.fbLeads?.daily || []).filter(d => d.date >= cs && d.date <= end).forEach(d =>
+        (d.matchedGuests || []).forEach(g => {
+          if (!gm[g.key]) gm[g.key] = { hasPos: g.hasPos, amount: g.amount, resCount: g.resCount };
+          else { gm[g.key].amount += g.amount; gm[g.key].resCount += g.resCount; if (g.hasPos) gm[g.key].hasPos = true; }
+        })
+      );
+      const guests = Object.values(gm);
+      const total = guests.reduce((s, g) => s + (g.hasPos ? g.amount : g.resCount * spendPerRes), 0);
+      return total > 0 ? total : (fbl.metaLeadRevenue || 0);
+    })(),
     bigWin, whatHappened,
     actions,
   };
@@ -553,7 +565,7 @@ export default function Scorecard({ restaurant }) {
               )}
               {c.blendedCPR > 0 && c.spendPerRes > 0 && (
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 600, marginTop: 6, padding: '3px 8px', borderRadius: 5, color: greenMid, background: 'rgba(45,122,79,0.08)' }}>
-                  ↑ {(c.spendPerRes / c.blendedCPR).toFixed(0)}× ROI — {fmtD(c.blendedCPR)} to acquire, {fmtD(c.spendPerRes)} revenue per reservation{(c.metaLeadRevenue > 0 || (c.ga.reservations > 0 && c.spendPerRes > 0)) ? ` · ${fmtD((c.metaLeadRevenue || 0) + (c.ga.reservations * c.spendPerRes || 0))} est. total revenue` : ''}
+                  ↑ {(c.spendPerRes / c.blendedCPR).toFixed(0)}× ROI — {fmtD(c.blendedCPR)} to acquire, {fmtD(c.spendPerRes)} revenue per reservation{(c.metaLeadRevenueWithEst > 0 || (c.ga.reservations > 0 && c.spendPerRes > 0)) ? ` · ${fmtD((c.metaLeadRevenueWithEst || 0) + (c.ga.reservations * c.spendPerRes || 0))} est. total revenue` : ''}
                 </div>
               )}
             </div>
@@ -659,11 +671,24 @@ export default function Scorecard({ restaurant }) {
                   <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 34, color: greenMid, lineHeight: 1 }}>{fmtN(c.fbl.matched)}</div>
                   <div style={{ fontSize: 14, color: muted, marginTop: 6, marginBottom: 18, lineHeight: 1.5 }}>Cross-matched · {fmtN(c.fbl.newGuests)} new guests</div>
                 </>)}
-                {c.metaLeadRevenue > 0 && (<>
-                  <div style={{ fontSize: 11, color: dim, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600, marginBottom: 8 }}>Revenue from matched leads</div>
-                  <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 34, color: green, lineHeight: 1 }}>{fmtD(c.metaLeadRevenue)}</div>
-                  <div style={{ fontSize: 14, color: muted, marginTop: 6, marginBottom: 18, lineHeight: 1.5 }}>Total revenue from {fmtN(c.fbl.matched)} matched guests</div>
-                </>)}
+                {(() => {
+                  const gm = {};
+                  (data.fbLeads?.daily || []).filter(d => d.date >= c.cs && d.date <= c.end).forEach(d =>
+                    (d.matchedGuests || []).forEach(g => {
+                      if (!gm[g.key]) gm[g.key] = { hasPos: g.hasPos, amount: g.amount, resCount: g.resCount };
+                      else { gm[g.key].amount += g.amount; gm[g.key].resCount += g.resCount; if (g.hasPos) gm[g.key].hasPos = true; }
+                    })
+                  );
+                  const guests = Object.values(gm);
+                  const totalWithEst = guests.reduce((s, g) => s + (g.hasPos ? g.amount : g.resCount * c.spendPerRes), 0);
+                  if (!guests.length && c.metaLeadRevenue === 0) return null;
+                  const display = c.metaLeadRevenueWithEst > 0 ? c.metaLeadRevenueWithEst : c.metaLeadRevenue;
+                  return (<>
+                    <div style={{ fontSize: 11, color: dim, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600, marginBottom: 8 }}>Revenue from matched leads</div>
+                    <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 34, color: green, lineHeight: 1 }}>{fmtD(display)}</div>
+                    <div style={{ fontSize: 14, color: muted, marginTop: 6, marginBottom: 18, lineHeight: 1.5 }}>Total revenue from {fmtN(guests.length || c.fbl.matched)} matched guests</div>
+                  </>);
+                })()}
                 <hr style={{ border: 'none', borderTop: `1px solid ${border}`, margin: '14px 0' }} />
                 {c.fb.otReservations > 0 && statRow('OT reservations (pixel)', fmtN(c.fb.otReservations), 'g')}
                 {c.fbl.newGuests > 0 && statRow('New guests', fmtN(c.fbl.newGuests), 'g')}

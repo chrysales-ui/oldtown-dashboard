@@ -424,7 +424,8 @@ async function processFacebookLeads(reservationGuestIndex, pvGuestIndex = {}, pv
   const daily = {}, monthly = {};
   let totalLeads = 0, matched = 0, newGuests = 0, returning = 0, pvMatched = 0, pePvMatched = 0, pePvMatchedRevenue = 0, metaLeadRevenue = 0;
   const seenPeEmails = new Set();
-  const seenMatchedGuests = new Set();
+  const seenMatchedGuests = new Set();  // prevents double-counting revenue
+  const seenDetailGuests = new Set();   // prevents duplicate detail entries
 
   for (let i = 1; i < lines.length; i++) {
     const col = parseCSVLine(lines[i]);
@@ -471,21 +472,25 @@ async function processFacebookLeads(reservationGuestIndex, pvGuestIndex = {}, pv
         const earliest = createdDates.slice().sort()[0];
         if (earliest >= dateKey) { newGuests++; daily[dateKey].newGuests++; monthly[monthKey].newGuests++; }
         else { returning++; daily[dateKey].returning++; monthly[monthKey].returning++; }
+        // revenue: count once across all time (no double-counting)
         if (!seenMatchedGuests.has(guestKey)) {
           if (resRevenueIndex[guestKey]) {
             for (const [resDate, amt] of Object.entries(resRevenueIndex[guestKey])) {
               metaLeadRevenue += amt;
               if (!daily[resDate]) daily[resDate] = { date: resDate, leads: 0, matched: 0, newGuests: 0, returning: 0, pePvMatched: 0 };
               daily[resDate].metaLeadRevenue = (daily[resDate].metaLeadRevenue || 0) + amt;
-              if (!daily[resDate].matchedGuests) daily[resDate].matchedGuests = [];
-              daily[resDate].matchedGuests.push({ key: guestKey, email: email || '', phone: phone || '', amount: amt, resCount: 1 });
             }
-          } else {
-            // matched guest but no POS data — record on lead date with $0 and res count for avg estimate
-            if (!daily[dateKey].matchedGuests) daily[dateKey].matchedGuests = [];
-            daily[dateKey].matchedGuests.push({ key: guestKey, email: email || '', phone: phone || '', amount: 0, resCount: createdDates.length });
           }
           seenMatchedGuests.add(guestKey);
+        }
+        // detail entry: record on lead date, once per guest (so breakdown shows all 7)
+        if (!seenDetailGuests.has(guestKey)) {
+          if (!daily[dateKey].matchedGuests) daily[dateKey].matchedGuests = [];
+          const guestRevDates = resRevenueIndex[guestKey] || {};
+          const hasPos = Object.keys(guestRevDates).length > 0;
+          const posTotal = Object.values(guestRevDates).reduce((s, v) => s + v, 0);
+          daily[dateKey].matchedGuests.push({ key: guestKey, email: email || '', phone: phone || '', amount: posTotal, resCount: hasPos ? Object.keys(guestRevDates).length : createdDates.length, hasPos });
+          seenDetailGuests.add(guestKey);
         }
       }
     }
