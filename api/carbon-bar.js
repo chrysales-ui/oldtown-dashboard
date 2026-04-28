@@ -306,6 +306,14 @@ async function processReservations() {
     monthly[key].reservations++; monthly[key].covers += size;
     daily[dateKey].reservations++; daily[dateKey].covers += size;
     if (ltpc > 0) { daily[dateKey].ltpcSum += ltpc; daily[dateKey].ltpcCount++; }
+    const partner = (col[27] || '').trim();
+    if (partner === 'Google') {
+      daily[dateKey].googlePartnerRes = (daily[dateKey].googlePartnerRes || 0) + 1;
+      if (ltpc > 0) {
+        daily[dateKey].googlePartnerRevenue = (daily[dateKey].googlePartnerRevenue || 0) + ltpc;
+        daily[dateKey].googlePartnerRevCount = (daily[dateKey].googlePartnerRevCount || 0) + 1;
+      }
+    }
     if (visitKey) {
       const vMonth = visitKey.slice(0,7);
       if (!monthly[vMonth]) monthly[vMonth] = { month: vMonth, reservations:0, covers:0, firstVisit:0, repeat:0, cancelled:0, noShow:0 };
