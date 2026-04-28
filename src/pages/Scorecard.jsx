@@ -49,7 +49,7 @@ function compute(data, cs, end) {
 
   const FB_KEYS  = ['spend', 'leadSpend', 'otSpend', 'resultsCount', 'reach', 'impressions', 'clicks', 'otReservations'];
   const GA_KEYS  = ['spend', 'reservations', 'storeVisits', 'calls'];
-  const RES_KEYS = ['reservations', 'covers', 'seatedRes', 'ltpcSum', 'ltpcCount'];
+  const RES_KEYS = ['reservations', 'covers', 'seatedRes', 'ltpcSum', 'ltpcCount', 'googlePartnerRes', 'googlePartnerRevenue', 'googlePartnerRevCount'];
   const PV_KEYS  = ['leads', 'completed', 'lost', 'groupSize', 'proposalTotal', 'revenueValue'];
   const FBL_KEYS = ['leads', 'matched', 'newGuests', 'returning', 'pvMatched', 'pePvMatched', 'pePvMatchedRevenue', 'metaLeadRevenue'];
   const SEO_KEYS = ['clicks', 'impressions'];
@@ -565,7 +565,7 @@ export default function Scorecard({ restaurant }) {
               )}
               {c.blendedCPR > 0 && c.spendPerRes > 0 && (
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 600, marginTop: 6, padding: '3px 8px', borderRadius: 5, color: greenMid, background: 'rgba(45,122,79,0.08)' }}>
-                  ↑ {(c.spendPerRes / c.blendedCPR).toFixed(0)}× ROI — {fmtD(c.blendedCPR)} to acquire, {fmtD(c.spendPerRes)} revenue per reservation{(c.metaLeadRevenueWithEst > 0 || (c.ga.reservations > 0 && c.spendPerRes > 0)) ? ` · ${fmtD((c.metaLeadRevenueWithEst || 0) + ((c.ga.reservations + (c.fb.otReservations || 0)) * c.spendPerRes || 0))} est. total revenue` : ''}
+                  ↑ {(c.spendPerRes / c.blendedCPR).toFixed(0)}× ROI — {fmtD(c.blendedCPR)} to acquire, {fmtD(c.spendPerRes)} avg per seated guest{(c.metaLeadRevenueWithEst > 0 || (c.ga.reservations > 0 && c.spendPerRes > 0)) ? ` · ${fmtD((c.metaLeadRevenueWithEst || 0) + ((c.ga.reservations + (c.fb.otReservations || 0)) * c.spendPerRes || 0))} est. ad-driven revenue` : ''}
                 </div>
               )}
             </div>
@@ -630,10 +630,15 @@ export default function Scorecard({ restaurant }) {
                   <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 34, color: greenMid, lineHeight: 1 }}>{fmtD(c.spendPerRes)}</div>
                   <div style={{ fontSize: 14, color: muted, marginTop: 6, marginBottom: 18, lineHeight: 1.5 }}>Avg across {fmtN(c.res.ltpcCount)} reservations with POS data</div>
                 </>)}
+                {c.res.googlePartnerRevenue > 0 && (<>
+                  <div style={{ fontSize: 11, color: dim, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600, marginBottom: 8 }}>Confirmed revenue (Google Partner)</div>
+                  <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 34, color: green, lineHeight: 1 }}>{fmtD(c.res.googlePartnerRevenue)}</div>
+                  <div style={{ fontSize: 14, color: muted, marginTop: 6, marginBottom: 18, lineHeight: 1.5 }}>{fmtN(c.res.googlePartnerRevCount)} reservations with POS data · {fmtN(c.res.googlePartnerRes)} total Google-tagged</div>
+                </>)}
                 {c.ga.reservations > 0 && c.spendPerRes > 0 && (<>
-                  <div style={{ fontSize: 11, color: dim, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600, marginBottom: 8 }}>Est. revenue driven</div>
-                  <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 34, color: green, lineHeight: 1 }}>{fmtD(c.ga.reservations * c.spendPerRes)}</div>
-                  <div style={{ fontSize: 14, color: muted, marginTop: 6, marginBottom: 18, lineHeight: 1.5 }}>{fmtN(c.ga.reservations)} res × {fmtD(c.spendPerRes)} avg</div>
+                  <div style={{ fontSize: 11, color: dim, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600, marginBottom: 8 }}>Est. revenue from ad-driven reservations</div>
+                  <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 34, color: greenMid, lineHeight: 1 }}>{fmtD(c.ga.reservations * c.spendPerRes)}</div>
+                  <div style={{ fontSize: 14, color: muted, marginTop: 6, marginBottom: 18, lineHeight: 1.5 }}>{fmtN(c.ga.reservations)} reservations × {fmtD(c.spendPerRes)} avg · includes unconfirmed</div>
                 </>)}
                 <hr style={{ border: 'none', borderTop: `1px solid ${border}`, margin: '14px 0' }} />
                 {c.gResPct != null && statRow('vs prev period', `${c.gResPct >= 0 ? '+' : ''}${c.ga.reservations - c.gap.reservations} (${c.gResPct.toFixed(1)}%)`, c.gResPct >= 0 ? 'g' : 'r')}
