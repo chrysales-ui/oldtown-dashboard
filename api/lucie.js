@@ -496,10 +496,11 @@ async function processFacebookLeads(reservationGuestIndex, pvGuestIndex = {}, pv
         if (!seenDetailGuests.has(guestKey)) {
           if (!daily[dateKey].matchedGuests) daily[dateKey].matchedGuests = [];
           const guestRevDates = resRevenueIndex[guestKey] || {};
-          const hasPos = Object.keys(guestRevDates).length > 0;
-          const posTotal = Object.values(guestRevDates).reduce((s, v) => s + v, 0);
+          const revAfterLead = Object.fromEntries(Object.entries(guestRevDates).filter(([d]) => d >= dateKey));
+          const hasPos = Object.keys(revAfterLead).length > 0;
+          const posTotal = Object.values(revAfterLead).reduce((s, v) => s + v, 0);
           const resAfterLead = hasPos
-            ? Object.keys(guestRevDates).filter(d => d >= dateKey).length
+            ? Object.keys(revAfterLead).length
             : createdDates.filter(d => d >= dateKey).length;
           daily[dateKey].matchedGuests.push({ key: guestKey, email: email || '', phone: phone || '', amount: posTotal, resCount: resAfterLead, hasPos });
           seenDetailGuests.add(guestKey);
