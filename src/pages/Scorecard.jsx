@@ -217,17 +217,6 @@ function compute(data, cs, end) {
   const actions = [];
   const unbooked = diningMetaResults - fbl.matched;
 
-  // Google: reservations up and efficient → scale
-  if (gResPct != null && gResPct >= 10 && gCostPerRes > 0)
-    actions.push({ title: 'Scale Google budget', body: `Reservations are up ${gResPct.toFixed(0)}% at ${fmtD2(gCostPerRes)}/res — campaigns are performing well. Consider increasing budget to capture more demand before limits are reached.` });
-
-  // Google: reservations down → review
-  if (gResPct != null && gResPct <= -15 && gap.reservations > 0)
-    actions.push({ title: 'Review Google campaign performance', body: `Reservations are ${Math.abs(gResPct).toFixed(0)}% below the prior period (${fmtN(gap.reservations)} → ${fmtN(ga.reservations)}). A review of budget pacing, bid strategy, and tracking is recommended.` });
-
-  // Google: cost/res increased
-  if (gCPRPct != null && gCPRPct > 25 && gCostPerResP > 0)
-    actions.push({ title: 'Optimize Google efficiency', body: `Cost per reservation has shifted ${gCPRPct.toFixed(0)}% (${fmtD2(gCostPerResP)} → ${fmtD2(gCostPerRes)}). Reviewing bid strategy and search term targeting can improve efficiency.` });
 
   // Meta: unbooked dining leads → follow up
   if (unbooked >= 5)
