@@ -830,15 +830,6 @@ export default function Scorecard({ restaurant }) {
               <div style={{ flex: 1, height: 1, background: border }} />
             </div>
             <div className="sc-actions">
-              {slug === 'lucie' && (
-                <div style={{ background: white, borderRadius: 12, padding: '20px 22px', border: `1px solid rgba(180,140,60,0.3)`, borderLeft: `3px solid #B8902A`, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'rgba(255,255,255,0.9)', background: '#B8902A', borderRadius: 4, padding: '2px 7px', lineHeight: 1.6, flexShrink: 0 }}>★</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: '#2A2A1E', letterSpacing: '-0.01em' }}>Launching Lucie's new era campaign</span>
-                  </div>
-                  <div style={{ fontSize: 13.5, color: muted, lineHeight: 1.65, paddingLeft: 2 }}>Meta campaigns have been paused since April 21 as we prepare for the next chapter — the opening of Lucie's new era. The next campaign will launch once the creative and strategy are ready.</div>
-                </div>
-              )}
               {c.actions.map((a, i) => (
                 <div key={i} style={{ background: white, borderRadius: 12, padding: '20px 22px', border: `1px solid ${border}`, borderLeft: `3px solid ${green}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
