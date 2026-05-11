@@ -1,53 +1,56 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 // Module-level cache — survives navigation (component unmount/remount)
 const cache = {};
 
+async function loadSnapshot(slug) {
+  const res = await fetch(`/data/${slug}/snapshot.json`);
+  if (!res.ok) throw new Error('no snapshot');
+  return res.json();
+}
+
 export function useRestaurantData(slug) {
   const [data, setData] = useState(cache[slug]?.data || null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cache[slug]);
   const [lastUpdated, setLastUpdated] = useState(cache[slug]?.lastUpdated || null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const mounted = useRef(true);
 
   const refresh = useCallback(async () => {
-    setLoading(true);
+    setIsRefreshing(true);
     try {
       const res = await fetch(`/api/${slug}`);
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const live = await res.json();
       const ts = live.meta?.lastUpdated || new Date().toISOString();
       cache[slug] = { data: live, lastUpdated: ts };
-      setData(live);
-      setLastUpdated(ts);
+      if (mounted.current) { setData(live); setLastUpdated(ts); }
     } catch (err) {
-      console.error('Live fetch failed, falling back to static', err);
-      // Fall back to static JSON if API fails
-      if (!cache[slug]) {
-        try {
-          const files = ['summary', 'facebook', 'google-ads', 'google-private', 'reservations', 'perfect-venue', 'email'];
-          const results = await Promise.all(
-            files.map(f => fetch(`/data/${slug}/${f}.json`).then(r => r.ok ? r.json() : null).catch(() => null))
-          );
-          const [summary, facebook, googleAds, googlePrivate, reservations, perfectVenue, email] = results;
-          const staticData = { summary, facebook, googleAds, googlePrivate, reservations, perfectVenue, email };
-          setData(staticData);
-          setLastUpdated(summary?.meta?.lastUpdated || null);
-        } catch (e) {
-          console.error('Static fallback also failed', e);
-        }
-      }
+      console.error('Live fetch failed', err);
     } finally {
-      setLoading(false);
+      if (mounted.current) setIsRefreshing(false);
     }
   }, [slug]);
 
   useEffect(() => {
-    // Already have fresh cached data — no need to re-fetch
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+
+  useEffect(() => {
     if (cache[slug]) {
       setLoading(false);
       return;
     }
+
+    // Show snapshot instantly, then refresh live in background
+    loadSnapshot(slug)
+      .then(snap => { if (mounted.current) { setData(snap); setLastUpdated(snap?.meta?.lastUpdated || null); } })
+      .catch(() => {})
+      .finally(() => { if (mounted.current) setLoading(false); });
+
     refresh();
   }, [slug, refresh]);
 
-  return { data, loading, lastUpdated, refresh };
+  return { data, loading, lastUpdated, refresh, isRefreshing };
 }

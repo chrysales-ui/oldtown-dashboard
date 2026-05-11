@@ -1,9 +1,5 @@
 {
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
-  ],
-  "crons": [
-    { "path": "/api/carbon-bar", "schedule": "*/9 * * * *" },
-    { "path": "/api/lucie",      "schedule": "*/9 * * * *" }
   ]
 }
