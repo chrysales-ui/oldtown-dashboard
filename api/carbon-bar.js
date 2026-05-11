@@ -494,8 +494,8 @@ async function processEmail() {
   };
 }
 
-async function processFacebookLeads(reservationGuestIndex, pvGuestIndex = {}, pvRevenueIndex = {}, resRevenueIndex = {}) {
-  const lines = await fetchCSV(TABS.fbLeads);
+async function processFacebookLeads(reservationGuestIndex, pvGuestIndex = {}, pvRevenueIndex = {}, resRevenueIndex = {}, prefetchedLines = null) {
+  const lines = prefetchedLines || await fetchCSV(TABS.fbLeads);
   const daily = {}, monthly = {};
   let totalLeads = 0, matched = 0, newGuests = 0, returning = 0, pvMatched = 0, pePvMatchedRevenue = 0, metaLeadRevenue = 0;
   const seenPeEmails = new Set();
@@ -620,15 +620,24 @@ async function processFacebookLeads(reservationGuestIndex, pvGuestIndex = {}, pv
   };
 }
 
+let _cache = null;
+let _cacheTime = 0;
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=60');
+
+  if (_cache && Date.now() - _cacheTime < CACHE_TTL) {
+    return res.status(200).json(_cache);
+  }
+
   try {
     const safe = (fn, fallback) => fn().catch(e => { console.error(fn.name, e.message); return fallback; });
     const emptyFb = { monthly: [], daily: [], campaigns: [], campMonthly: [], campDaily: [] };
     const emptyFbLeads = { summary: { totalLeads:0, matched:0, newGuests:0, returning:0, matchRate:0, pvMatched:0, pePvMatched:0, pePvMatchedRevenue:0, metaLeadRevenue:0 }, daily: [], monthly: [] };
 
-    const [summary, ga, facebook, googleAds, reservations, perfectVenue, email, seo] = await Promise.all([
+    const [summary, ga, facebook, googleAds, reservations, perfectVenue, email, seo, fbLeadsLines] = await Promise.all([
       safe(processSummaryFromAllData, { daily: [], monthly: [] }),
       safe(processGA,                 { daily: [], monthly: [] }),
       safe(processFacebook,           emptyFb),
@@ -637,16 +646,20 @@ export default async function handler(req, res) {
       safe(processPerfectVenue,       { pvGuestIndex:{}, statuses:[], sources:[], lostReasons:[], monthly:[], daily:[], totalCompletedRevenue:0, avgRevenuePerEvent:0, closeRate:0 }),
       safe(processEmail,              { monthly:[], subscribersByMonth:[], totalSubscribers:0 }),
       safe(processSEO,                { daily:[] }),
+      fetchCSV(TABS.fbLeads).catch(() => null),
     ]);
 
-    const fbLeads = await safe(() => processFacebookLeads(reservations.guestIndex, perfectVenue.pvGuestIndex, perfectVenue.pvRevenueIndex || {}, reservations.resRevenueIndex || {}), emptyFbLeads);
+    const fbLeads = await safe(() => processFacebookLeads(reservations.guestIndex, perfectVenue.pvGuestIndex, perfectVenue.pvRevenueIndex || {}, reservations.resRevenueIndex || {}, fbLeadsLines), emptyFbLeads);
 
     const { guestIndex: _gi, ...reservationsOut } = reservations;
-    res.status(200).json({
+    const payload = {
       summary, ga, facebook, googleAds,
       reservations: reservationsOut, perfectVenue, email, seo, fbLeads,
       meta: { lastUpdated: new Date().toISOString(), source: 'live' },
-    });
+    };
+    _cache = payload;
+    _cacheTime = Date.now();
+    res.status(200).json(payload);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
